@@ -4,6 +4,8 @@
  */
 #include "JustBounce.h"
 
+#include <stdlib.h>
+
 #include <Alignment.h>
 #include <LayoutBuilder.h>
 #include <Slider.h>
