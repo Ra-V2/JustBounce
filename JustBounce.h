@@ -18,6 +18,9 @@ public:
 
 	virtual status_t	StartSaver(BView* view, bool preview);
 	virtual void		Draw(BView* view, int32 frame);
+	
+	virtual void		MessageReceived(BMessage* msg);
+	virtual status_t	SaveState(BMessage* into) const;
 
 private:
 	rgb_color					GetColor();
@@ -37,7 +40,11 @@ private:
 	int							fViewX;
 	int							fViewY;
 
+	int							fSpeed;
 	rgb_color					fColor;
+	
+	bool						fRestart;
+	bool						fPreview;
 };
 
 #endif
