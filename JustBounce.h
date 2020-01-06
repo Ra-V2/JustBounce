@@ -8,6 +8,8 @@
 #include <Handler.h>
 #include <ScreenSaver.h>
 #include <ObjectList.h>
+#include <String.h>
+#include <TextControl.h>
 
 class JustBounce : public BScreenSaver, public BHandler {
 public:
@@ -24,27 +26,33 @@ public:
 
 private:
 	rgb_color					GetColor();
+	void						Restart(BView* view);
+	void						ChangeText();
 	
-	int							fTextStartX;
-	int							fTextStartY;
+	int						fTextStartX;
+	int						fTextStartY;
 	
-	int							fTextEndX;
-	int							fTextEndY;
+	int						fTextEndX;
+	int						fTextEndY;
 	
-	int							fTextChangeX;
-	int							fTextChangeY;
+	int						fTextChangeX;
+	int						fTextChangeY;
 	
-	int							fTextHeight;
-	int							fTextWidth;
+	int						fTextHeight;
+	int						fTextWidth;
 	
-	int							fViewX;
-	int							fViewY;
+	int						fViewX;
+	int						fViewY;
 
-	int							fSpeed;
+	int						fSpeed;
 	rgb_color					fColor;
 	
 	bool						fRestart;
 	bool						fPreview;
+	
+	BString						fText;
+	BTextControl*					fTextControl;
+	
 };
 
 #endif

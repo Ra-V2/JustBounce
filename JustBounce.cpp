@@ -7,6 +7,7 @@
 #include <stdlib.h>
 
 #include <Alignment.h>
+#include <Alert.h>
 #include <LayoutBuilder.h>
 #include <Slider.h>
 #include <String.h>
@@ -17,6 +18,7 @@
 	(sizeof(a) / sizeof(a[0]))
 
 static const int32 kChangeSpeed = 'chgs';
+static const int32 kChangeText = 'chgt';
 
 //informations
 static const BString kName = "JustBounce";
@@ -24,8 +26,6 @@ static const BString kAuthor = "by RaV";
 
 //black
 static const rgb_color kBlack = {0, 0, 0, 255};
-
-static const char* kText = "HAIKU";
 
 extern "C" BScreenSaver*
 instantiate_screen_saver(BMessage* msg, image_id id)
@@ -41,9 +41,11 @@ JustBounce::JustBounce(BMessage* archive, image_id id)
 	fSpeed(1000),
 	fColor(GetColor()),
 	fRestart(false),
-	fPreview(false)
+	fPreview(false),
+	fText("HAIKU")
 {
 	fSpeed = archive->GetInt32("fSpeed", fSpeed);
+	fText = archive->GetString("fText", fText);
 }
 
 JustBounce::~JustBounce()
@@ -61,12 +63,17 @@ JustBounce::StartConfig(BView* view)
 	v1->SetFont(be_bold_font);
 	BStringView* v2 = new BStringView("author", kAuthor);
 	
+	fTextControl = new BTextControl("text", "Text", "", NULL);
+	fTextControl->SetText(fText);
+	fTextControl->SetTarget(this);
+	fTextControl->SetModificationMessage(new BMessage(kChangeText));
+	
 	BSlider* s1;
 	
 	s1 = new BSlider("speed", "Speed", new BMessage(kChangeSpeed), 500, 5000, B_HORIZONTAL);
 	s1->SetValue(fSpeed);
 	s1->SetTarget(this);
-	s1->SetLimitLabels("Fast", "Slow");
+	s1->SetLimitLabels("Slow", "Fast");
 
 	BLayoutBuilder::Group<>(view, B_VERTICAL, B_USE_ITEM_SPACING)
 		.SetInsets(B_USE_WINDOW_INSETS)
@@ -75,7 +82,8 @@ JustBounce::StartConfig(BView* view)
 			.Add(v1)
 			.Add(v2)
 			.AddGlue()
-		.End()
+			.End()
+		.Add(fTextControl)
 		.Add(s1)
 		.AddGlue()
 		.End();
@@ -97,31 +105,8 @@ JustBounce::StartSaver(BView* view, bool preview)
 	fViewX = view->Bounds().Width();
 	fViewY = view->Bounds().Height();
 
-	//set font
-	BFont font;
-	view->GetFont(&font);
-	font.SetSize(fViewY / 10);
-	font.SetFace(B_BOLD_FACE);
-	view->SetFont(&font);
-
-	escapement_delta delta;
-	delta.nonspace = 0;
-	delta.space = 0;
-
-	//get width and height
-	BRect rect;
-	font.GetBoundingBoxesForStrings(&kText, 1, B_SCREEN_METRIC, &delta, &rect);
-	fTextWidth = rect.Width();
-	fTextHeight = rect.Height();
-
-	//set left bottom
-	fTextStartX = random() % (fViewX - fTextWidth);
-	fTextStartY = random() % (fViewY - fTextHeight) + fTextHeight;
-
-	//set right top
-	fTextEndX = fTextStartX + fTextWidth;
-	fTextEndY = fTextStartY - fTextHeight;
-
+	Restart(view);
+	
 	return B_OK;
 }
 
@@ -129,18 +114,11 @@ void
 JustBounce::Draw(BView* view, int32 frame)
 {
 	if (frame == 0 || fRestart) {
-		if (fPreview)
-			SetTickSize(fSpeed * 10);
-		else
-			SetTickSize(fSpeed);
-
-		view->SetDrawingMode(B_OP_ALPHA);
-		view->SetLowColor(kBlack);
-		view->FillRect(view->Bounds(), B_SOLID_LOW);
+		Restart(view);
 	}
 	
 	view->FillRect(view->Bounds(), B_SOLID_LOW);
-
+	
 	//change postition
 	fTextStartX += fTextChangeX;
 	fTextStartY += fTextChangeY;
@@ -165,7 +143,7 @@ JustBounce::Draw(BView* view, int32 frame)
 
 	//draw
 	view->SetHighColor(fColor);
-	view->DrawString(kText, BPoint(fTextStartX, fTextStartY));
+	view->DrawString(fText, BPoint(fTextStartX, fTextStartY));
 }
 
 void
@@ -176,6 +154,9 @@ JustBounce::MessageReceived(BMessage* msg)
 		fSpeed = msg->GetInt32("be:value", fSpeed);
 		fRestart = true;
 		break;
+	case kChangeText:
+		ChangeText();
+		fRestart = true;
 	default:
 		BHandler::MessageReceived(msg);
 	}
@@ -185,7 +166,59 @@ status_t
 JustBounce::SaveState(BMessage* into) const
 {
 	into->AddInt32("fSpeed", fSpeed);
+	into->AddString("fText", fText);
 	return B_OK;
+}
+
+void
+JustBounce::Restart(BView* view)
+{
+	fRestart = false;
+	
+	if (fPreview)
+		SetTickSize((5500 - fSpeed) * 10);
+	else
+		SetTickSize(5500 - fSpeed);
+	
+	//set font
+	BFont font;
+	view->GetFont(&font);
+	font.SetSize(fViewY / 10);
+	font.SetFace(B_BOLD_FACE);
+	view->SetFont(&font);
+
+	escapement_delta delta;
+	delta.nonspace = 0;
+	delta.space = 0;
+
+	//get width and height
+	const char* text = fText;
+	BRect rect;
+	font.GetBoundingBoxesForStrings(&text, 1, B_SCREEN_METRIC, &delta, &rect);
+	fTextWidth = rect.Width();
+	fTextHeight = rect.Height();
+
+	//set left bottom
+	fTextStartX = random() % (fViewX - fTextWidth);
+	fTextStartY = random() % (fViewY - fTextHeight) + fTextHeight;
+
+	//set right top
+	fTextEndX = fTextStartX + fTextWidth;
+	fTextEndY = fTextStartY - fTextHeight;
+
+	view->SetDrawingMode(B_OP_ALPHA);
+	view->SetLowColor(kBlack);
+	view->FillRect(view->Bounds(), B_SOLID_LOW);
+}
+
+void
+JustBounce::ChangeText()
+{
+	BString text = fTextControl->Text();
+	int textLength = text.Length();
+	if (textLength <= 15) {
+		fText = text;
+	}
 }
 
 //pick next color
