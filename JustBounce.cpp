@@ -102,8 +102,8 @@ JustBounce::StartSaver(BView* view, bool preview)
 	else
 		fPreview = false;
 
-	fViewX = view->Bounds().Width();
-	fViewY = view->Bounds().Height();
+	fViewX = (int)view->Bounds().Width();
+	fViewY = (int)view->Bounds().Height();
 
 	Restart(view);
 	
@@ -195,8 +195,8 @@ JustBounce::Restart(BView* view)
 	const char* text = fText;
 	BRect rect;
 	font.GetBoundingBoxesForStrings(&text, 1, B_SCREEN_METRIC, &delta, &rect);
-	fTextWidth = rect.Width();
-	fTextHeight = rect.Height();
+	fTextWidth = (int)rect.Width();
+	fTextHeight = (int)rect.Height();
 
 	//set left bottom
 	fTextStartX = random() % (fViewX - fTextWidth);
@@ -218,6 +218,8 @@ JustBounce::ChangeText()
 	int textLength = text.Length();
 	if (textLength <= 15) {
 		fText = text;
+	} else {
+		fTextControl->SetText(fText);	
 	}
 }
 
